@@ -1,0 +1,26 @@
+<html>
+<body>
+<h2>{{ now }}</h2>
+<p>
+  Hello, this is the raw info to answer the nagging question: who
+  would be available to play an official #ASR game with me? Note that
+  a 'p' next to a player name means he/she is online, but already
+  playing a game.
+</p>
+<p>
+  This info usually is updated every ten minutes, please complain
+  using the link below if this is not the case.
+</p>
+{% for room in ['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'PLACEMENT'] %}
+<h3>{{ room }}</h3>
+<ul>
+{% for player in present[room]|sort %}
+<li>{{ player }}</li>
+{% endfor %}
+</ul>
+{% endfor %}
+<p>
+  Brought to you by <a href="http://github.com/domeav/ASRbot">ASRbot</a>.
+</p>
+</body>
+</html>

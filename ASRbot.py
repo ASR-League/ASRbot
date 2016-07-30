@@ -6,6 +6,9 @@ import json
 from lxml import html
 from datetime import datetime
 from settings import KGS_URL, ASR_CHANNEL, ASR_PLAYERS_URL, PASSWD
+from model import db, ASRClass
+from jinja2 import Environment, PackageLoader
+env = Environment(loader=PackageLoader('ASRbot', 'templates'))
 
 def post_kgs(data, cookies=None):
     r = requests.post(KGS_URL, json.dumps(data), cookies=cookies)
@@ -30,6 +33,8 @@ def fetch_members():
         ASR[p] = 'PLACEMENT'
     return ASR
 
+db.connect()
+
 cookies = post_kgs({
     "type": "LOGIN",
     "name": "ASRbot",
@@ -40,6 +45,7 @@ cookies = post_kgs({
 ASR = fetch_members()
 done = False
 present = {'ALPHA': [], 'BETA': [], 'DELTA': [], 'GAMMA': [], 'PLACEMENT': []}
+available = {'ALPHA': 0, 'BETA': 0, 'DELTA': 0, 'GAMMA': 0, 'PLACEMENT': 0}
 while done == False:
     time.sleep(5)
     r = requests.get(KGS_URL, cookies=cookies)
@@ -49,31 +55,28 @@ while done == False:
     for m in json.loads(r.text)['messages']:
         if m['type'] == 'ROOM_JOIN' and m['channelId'] == ASR_CHANNEL:
             for user in m['users']:
-                if 'p' in user['flags']:
-                    continue
                 if user['name'] in ASR:
-                    present[ASR[user['name']]].append(user['name'])
+                    room = ASR[user['name']]
+                    present[room].append("{} ({})".format(user['name'], user['flags']))
+                    if 'p' in user['flags']:
+                        available[room] += 1
             done = True
             break
 
-now = datetime.utcnow().strftime('UTC %H:%M')
+now = datetime.utcnow()
+print now
+print present
+template = env.get_template('index.html')
+f = open('out/index.html', 'w')
+f.write(template.render(now=now, present=present))
+f.close()
 
-post_kgs({
-    'type': 'CHAT',
-    'channelId': ASR_CHANNEL,
-    'text': "Howdy, I am ASRbot, a quick hack which will tell you who is currently available for playing ({}).".format(now)}, cookies=cookies)
-
-for room in 'ALPHA', 'BETA', 'GAMMA', 'DELTA', 'PLACEMENT':
-    post_kgs({
-        'type': 'CHAT',
-        'channelId': ASR_CHANNEL,
-        'text': "{}: {}".format(room, ', '.join(present[room]) or 'Nobody! Sigh.')}, 
-             cookies=cookies)
-
-post_kgs({
-    'type': 'CHAT',
-    'channelId': ASR_CHANNEL,
-    'text': "Have fun! Post suggestions for ASRbot in https://github.com/domeav/ASRbot/issues"}, cookies=cookies)
-
+for room in present:
+    asrclass = ASRClass(name=room, 
+                        date=now, 
+                        present=present[room], 
+                        total_nb=len(present[room]), 
+                        available_nb=available[room])
+    asrclass.save()
 
 post_kgs({"type": "LOGOUT"}, cookies=cookies)
