@@ -1,4 +1,4 @@
 # ASRbot
-Simple bot that will periodically log who is currently available for playing in the KGS [ASR league](http://www.advancedstudyroom.org/) room chat.
+ASRbot will check which members of the ASR league are online, and will write the info in a html file.
 
-BTW, join the ASR! It's free and fun.
+BTW, join the [ASR](http://advancedstudyroom.org)! It's free and fun.
